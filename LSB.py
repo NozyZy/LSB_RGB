@@ -33,7 +33,8 @@ def get_bits_from_int(value):
 
 
 def bitstring_to_bytes(s):
-    return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
+    s = s.ljust(len(s) + (8-(len(s)%8)), '0') # Pad to 8
+    return int(s, 2).to_bytes(len(s) // 8, byteorder='big')
 
 
 parser = argparse.ArgumentParser(
@@ -61,9 +62,13 @@ parser.add_argument('-d', '--direction',
                     help='Direction to embed')
 parser.add_argument('-o', '--output',
                     type=str,
-                    default=None,
+                    default='embedded.png',
                     required=False,
                     help="File to output extracted data (.txt in plain text, other in binary)")
+parser.add_argument('-v', '--verbose',
+                    action="store_true",
+                    required=False,
+                    help="increase verbosity")
 
 args = parser.parse_args()
 
@@ -94,7 +99,8 @@ if args.text or args.file:
     elif args.text:
         data = args.text
         print('[+] Embedding data :', data)
-
+    if args.verbose:
+        print('[+] data :', data)
     # Size check
     size = img.width
     if direction == 'diagonal' and len(data) * 8 > size:
@@ -106,13 +112,18 @@ if args.text or args.file:
     # Begin Embedding
 
     # convert data to binary format
-    if type(data) == 'str':
+    if args.verbose:
+        print('[+] data type :', type(data))
+    if type(data) == str:
         to_embed = convert_str_to_bits(data)
     else:
         try:
             to_embed = convert_bytes_to_bits(data)
         except:
             raise TypeError(f'Cannot convert data type {type(data)}')
+
+    if args.verbose:
+        print('[+] data to embed :', to_embed)
 
     # diagonal direction
     if direction == 'diagonal':
@@ -133,11 +144,11 @@ if args.text or args.file:
                 couple = (j, i) if direction == 'horizontal' else (i, j)
                 pixel = list(img.getpixel(couple))
                 pixel[total % 3] = change_int_value_bit(pixel[total % 3], to_embed[total])
-                img.putpixel((j, i), tuple(pixel))
+                img.putpixel(couple, tuple(pixel))
                 total += 1
 
-    img.save('embedded.png', 'PNG')
-    print('[+] Data embedded successfully to embedded.png')
+    img.save(args.output, 'PNG')
+    print(f'[+] Data embedded successfully to {args.output}')
 
 
 # Extraction mode
@@ -172,10 +183,16 @@ else:
                          data[len(data) - 8 * sanitize_count:] == '1' * 8 * sanitize_count)):
                     data = data[:len(data) - 8 * sanitize_count]
                     break
+
+    if args.verbose:
+        print('[+] data found :', data)
+
     if not data:
         print('[-] No data was found.')
-    elif args.output:
+    elif args.output != 'embedded.png':
         with open(args.output, 'wb') as f:
+            print(' \n', data)
+            print(bitstring_to_bytes(data))
             f.write(bitstring_to_bytes(data))
         print(f'[+] Successfully extracted {len(data)} bytes to {args.output}')
     else:
