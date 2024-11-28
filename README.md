@@ -1,5 +1,5 @@
 # LSB_RGB
-LSB embeddor and extractor. Using three RGB colors.
+LSB embeddor and extractor. Using three RGB rotating colors (embedds in R, then G, then B, etc).
 
 This tools allows to embedd text or files into PNG files, using Lest Significant Bit technique. 
 
